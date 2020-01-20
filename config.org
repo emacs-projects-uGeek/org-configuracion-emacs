@@ -1,0 +1,1099 @@
+#+TITLE: Emacs Configuración
+
+* Emacs paquetes
+  Agrego los siguientes paquetes para las futuras instalaciones, la conexión por el puerto 443 no me fue posible, por lo que lo paso al  80 como normalmente lo hacía
+  #+BEGIN_SRC emacs-lisp :tangle yes
+  (setq package-archives '(("gnu" . "http://elpa.gnu.org/packages/")
+                           ("melpa" . "http://melpa.org/packages/")
+                           ("org" . "http://orgmode.org/elpa/")))
+  (package-initialize)
+
+  #+END_SRC
+
+** Use packages
+   Instalar use-package para poder gestionar de mejor forma nuestra configuración y los paquetes que instalaremos
+
+   #+BEGIN_SRC emacs-lisp :tangle yes
+	 (unless (package-installed-p 'use-package)
+		 (package-refresh-contents)
+		 (package-install 'use-package t))
+	   (setq-default
+		use-package-always-defer t
+		use-package-always-ensure t)
+
+	   ;(unless (package-installed-p 'use-package)
+	   ;;   (package-refresh-contents)
+	   ;;   (package-install 'use-package))
+
+	   ;; (use-package delight :ensure t)
+	   ;; (use-package use-package-ensure-system-package :ensure t)
+   #+END_SRC
+
+* Buen entorno
+** Configuraciones base
+
+   Configuración base que ayudará a tener un editor limpio y atractivo
+   #+BEGIN_SRC emacs-lisp :tangle yes
+   (setq
+   backup-by-copying t      ; no copiar enlaces simbólicos
+   backup-directory-alist
+	  `(("." . ,(expand-file-name "backups/" user-emacs-directory)))
+   delete-old-versions t
+   kept-new-versions 4
+   kept-old-versions 2
+   version-control t)       ; usar versionado de backups
+
+  (setq-default
+    inhibit-startup-screen t ; Deshabilita la pantalla de inicio
+    initial-scratch-message "" ; Mensaje que se mostrará  en Scratch buffer
+    ;;(setq make-backup-files nil) ; Deshabilita ~ files
+    ;;(setq auto-save-default nil) ; Deshabilita #file#
+    echo-keystrokes 0.1 ; Mostrar ordenes en el minibufer
+    display-time-24hr-format t ; Muestra el reloj en formato 24 hrs
+    display-time-format "%H:%M"; Le da formato a la hora
+    fill-column 80 ; Configura el salto de linea automatico
+    tab-width 4 ; Configura el tamaño del tabulador
+    ident-tabs-mode nil ; Tabula con espacios
+    visible-bell t ; Sin el sonido de la campana pero si visual
+    cursor-in-non-selected-windows t ; Deshabilita el cursor en ventana no visible
+    scroll-conservatively most-positive-fixnum ; Scroll con una linea
+    vc-follow-symlinks t ; Sigue el enlace simbólico
+    select-enable-clipboard t ; Usa tambien el portapapeles del sistem base
+	save-place-file "~/sync/orgmode-places" ; Asigna el lugar donde se almacenaran las posiones del cursor
+    )
+
+    (fset 'yes-or-no-p 'y-or-n-p) ; Cambia la opción cuando pide yes por y
+    (display-time-mode 1) ; Muesta la hora
+    (display-battery-mode) ; Muestra el nivel de bateria
+    (global-unset-key (kbd "C-z")) ; No duerme emacs con C-z
+    (global-subword-mode) ; Manejar camel-case como palabras distintas
+    (global-set-key (kbd "C-?") 'help-command) ; Cambia la opcion para mostrar las ayudas
+    (global-set-key (kbd "M-?") 'mark-paragraph) ; Marca el parrafo
+    (global-set-key (kbd "C-h") 'delete-backward-char) ; Retroceso
+    (global-set-key (kbd "M-h") 'backward-kill-word) ; Retroceso por palabras
+    (global-set-key (kbd "C-+") 'text-scale-increase) ; Incrementa el tamaño de la funte
+    (global-set-key (kbd "C--") 'text-scale-decrease) ; Decrementa el tamaño de la funte
+    (global-hl-line-mode) ; Resalta la línea actual
+    (tool-bar-mode -1) ; Deshabilita la barra de herramientes del menu
+    (scroll-bar-mode -1) ; Deshabilita el scroll
+    (menu-bar-mode -1) ; Deshabilita el menu
+    (column-number-mode 1) ; Muestra el numero de la columna
+    (show-paren-mode 1) ; Muestra el modo parent
+    (global-set-key (kbd "<f5>") 'menu-bar-mode) ; configura una tecla para mostrar las herramientas del menú
+    (set-language-environment "UTF-8") ; Configura la codificación del lenguaje del entorno
+    (set-default-coding-systems 'utf-8)               ; Default to utf-8 encoding
+    (delete-selection-mode t) ; Sobrescribe el texto seleccinado
+    (add-hook 'before-save-hook 'delete-trailing-whitespace) ; Elimina espacios sobrantes
+	(save-place-mode 1) ; Guarda la línea donde estaba el cursor antes de cerrar el editor o el archivo
+
+;; Cambia el cursor según el modo en que se encuentre
+(defun change-cursor-for-mode ()
+  "Cambia el cursor dependiendo el modo"
+  (cond
+   (overwrite-mode
+    (set-cursor-color "red")
+    (setq-default cursor-type 'block))
+   (buffer-read-only
+    (set-cursor-color "yellow")
+    (setq-default cursor-type 'box))
+   (t
+    (set-cursor-color "white")
+    (setq-default cursor-type 'bar)
+    )))
+(add-hook 'post-command-hook 'change-cursor-for-mode)
+   #+END_SRC
+
+** XDG
+   #+BEGIN_SRC emacs-lisp :tangle yes
+  (defvar xdg-bin (getenv "XDG_BIN_HOME")
+    "The XDG bin base directory.")
+
+  (defvar xdg-cache (getenv "XDG_CACHE_HOME")
+    "The XDG cache base directory.")
+
+  (defvar xdg-config (getenv "XDG_CONFIG_HOME")
+    "The XDG config base directory.")
+
+  (defvar xdg-data (getenv "XDG_DATA_HOME")
+    "The XDG data base directory.")
+
+  (defvar xdg-lib (getenv "XDG_LIB_HOME")
+    "The XDG lib base directory.")
+   #+END_SRC
+** WitchKey
+   Nos ayudará a saber que tecla usar
+
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package which-key
+  :ensure t
+  :init
+  (which-key-mode))
+   #+END_SRC
+** iBuffer
+   Manejo de buffers
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package ibuffer
+  :defer 0.2
+  :bind ("C-x C-b" . ibuffer))
+   #+END_SRC
+** Flycheck
+   Revisa la ortografía con este modo
+
+   #+BEGIN_SRC emacs-lisp :tangle yes
+
+(use-package flycheck
+  :hook
+  ((org-mode
+    makdown-mode
+    text-mode) . turn-on-flyspell))
+   #+END_SRC
+** Pretty-mode
+   Cambiar ciertos caracteres por unos visualmente atractivos
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package pretty-mode
+  :ensure t
+  :config (global-pretty-mode))
+   #+END_SRC
+
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package fill-column-indicator
+  :hook
+  ((markdown-mode
+    org-mode) . fci-mode))
+   #+END_SRC
+
+** Iconos
+   Paquete para mostrar iconos en diferentes módulos
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package all-the-icons)
+
+(use-package all-the-icons-ivy
+  :ensure t
+  :config
+  (all-the-icons-ivy-setup))
+
+(use-package all-the-icons-dired
+  :hook (dired-mode . all-the-icons-dired-mode))
+   #+END_SRC
+
+** HS
+   Modulo para plegar codigo
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(add-hook 'prog-mode-hook (lambda () (hs-minor-mode 1)))
+   #+END_SRC
+
+** Hightlight
+   Resaltar palabras al seleccionar
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package highlight-symbol
+  :bind
+  (:map prog-mode-map
+        ("M-o h" . highlight-symbol)
+        ("M-p" . highlight-symbol-prev)
+        ("M-n" . highlight-symbol-next)))
+   #+END_SRC
+
+** Move-up
+   Mueve el texto y duplica el texto
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package move-dup
+  :ensure t
+  :bind ( "M-<up>" . md-move-lines-up)
+  ("M-<down>" . md-move-lines-down)
+  ("C-M-<up>" . md-duplicate-up)
+  ("C-M-<down>" . md-duplicate-down)
+  )
+   #+END_SRC
+
+** Ace-windows
+   Una forma de cambiar entre buffers con numeros
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package ace-window
+  :ensure t
+  :init
+  (progn
+    (setq aw-scope 'global) ;; was frame
+    (global-set-key (kbd "C-x O") 'other-frame)
+    (global-set-key [remap other-window] 'ace-window)
+    (custom-set-faces
+     '(aw-leading-char-face
+       ((t (:inherit ace-jump-face-foreground :height 3.0)))))
+    ))
+   #+END_SRC
+
+** Avy
+   Resalta el texto seleccionado
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package avy
+  :ensure t
+  :bind ("M-s" . avy-goto-word-1)) ;;
+
+;; Representación de espacios en blanco
+(use-package whitespace
+  :ensure nil
+  :config
+  (set-face-attribute 'whitespace-space nil
+   :background nil
+   :foreground "gray26"
+   )
+  (set-face-attribute 'whitespace-newline nil
+    :background nil
+    :foreground "gray25"
+  )
+  :hook
+  ((python) . whitespace-mode)
+  )
+   #+END_SRC
+
+** Crux
+   Crux para ir al inicio pero sin ir al inicio con espacios
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package crux
+  :ensure t
+  :bind (("C-a" . crux-move-beginning-of-line)))
+   #+END_SRC
+** Emojify
+   Representación de los emojis
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package emojify
+  :ensure t)
+   #+END_SRC
+** Agressive Ident
+   #+BEGIN_SRC emacs-lisp :tangle yes
+;; Indenta pero siempre
+;;(use-package aggressive-indent
+;;      :ensure t)
+   #+END_SRC
+
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package fzf
+  :ensure t)
+   #+END_SRC
+
+** Restclient
+   Cliente restclient
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package restclient
+  :mode ("\\.http\\'" . restclient-mode))
+   #+END_SRC
+
+** Undo-tree
+   Undo mas visual
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package undo-tree
+  :diminish undo-tree-mode
+  :config
+  (progn
+    (global-undo-tree-mode)
+    (setq undo-tree-visualizer-timestamps t)
+    (setq undo-tree-visualizer-diff t)))
+
+   #+END_SRC
+
+** Autorevert
+   Recarga los archivos al ser modificados
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package autorevert
+  :ensure nil
+  :diminish
+  :hook (after-init . global-auto-revert-mode))
+   #+END_SRC
+
+** Spray
+   Modo para lectura rápida
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package spray
+  :config
+  (global-set-key (kbd "<f6>") 'spray-mode))
+   #+END_SRC
+** Rainbow
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package rainbow-mode
+  :defer 2
+  :delight
+  :hook (prog-mode))
+   #+END_SRC
+* Personalización
+** Tema
+   Configuración de tema
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package spacemacs-theme
+:defer t
+:init (load-theme 'spacemacs-dark t)
+)
+   #+END_SRc
+* Programación
+** JavaScript
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package js2-mode
+  :ensure t
+  :mode "\\.js\\'"
+  :config
+  (setq-default js2-ignored-warnings '("msg.extra.trailing.comma"))
+  (setq-default js2-basic-offset 4))
+
+(use-package prettier-js
+  :ensure t
+  :config
+  (setq prettier-js-args '(
+                           "--trailing-comma" "es5"
+                           "--single-quote" "true"
+                           "--print-width" "100"
+                           ))
+  (add-hook 'js2-mode-hook 'prettier-js-mode))
+
+;; A reformat tool for JSON (required by json-mode)
+(use-package json-reformat
+  :ensure t
+  :defer t)
+
+;; Get the path to a JSON element in Emacs (required by json-mode)
+(use-package json-snatcher
+  :ensure t
+  :defer t)
+
+;; Major mode for editing JSON files
+(use-package json-mode
+  :ensure t
+  :defer t
+  :requires (json-reformat json-snatcher))
+   #+END_SRC
+
+** PHP
+   Configuración para programar en PHP
+
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package php-mode
+  :ensure t)
+
+
+(use-package flycheck-phpstan
+  :after php-mode
+  :ensure nil
+  :config
+  (setq-default phpstan-level "max")
+  (flycheck-add-next-checker 'php 'phpstan)
+  (flycheck-add-next-checker 'phpstan 'php-phpmd)
+  )
+
+   #+END_SRC
+** PlantUML
+   Para UML
+   #+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package plantuml-mode
+     :defer 3)
+   #+END_SRC
+
+** Python
+   Configuración para programar en Python
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package elpy
+  :init
+  (add-to-list 'auto-mode-alist '("\\.py$" . python-mode))
+  :custom
+  (elpy-rpc-backend "jedi"))
+
+(use-package pyenv-mode
+  :config
+  (pyenv-mode))
+
+(use-package python
+  :ensure nil
+  :mode ("\\.py" . python-mode)
+  :config
+  (setq python-indent-offset 4)
+  (elpy-enable))
+   #+END_SRC
+
+** TypeScript
+
+   #+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package tide
+    :after (company flycheck)
+    :preface
+    (defun setup-tide-mode ()
+      (interactive)
+      (tide-setup)
+      (flycheck-mode +1)
+      (setq flycheck-check-syntax-automatically '(save mode-enabled))
+      (eldoc-mode +1)
+      (tide-hl-identifier-mode +1)
+      (company-mode +1))
+    :hook (before-save . tide-format-before-save))
+   #+END_SRC
+
+* Complementos
+** Dashboard
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package dashboard
+  :ensure t
+  :custom
+  (dashboard-banner-logo-title (format "Buen día %s" user-full-name))
+  (dashboard-startup-banner 'logo)
+  (dashboard-items '((recents . 7)
+                     (projects . 5)
+                     (bookmarks . 7)
+                     (agenda . 5)))
+  :config
+  (setq dashboard-set-heading-icons t)
+  (setq dashboard-set-file-icons t)
+  (setq dashboard-set-init-info t)
+  (setq dashboard-set-navigator t)
+  (setq dashboard-navigator-buttons
+        `(((,(when (display-graphic-p)
+               (all-the-icons-octicon "home" :height 1.1 :v-adjust 0.0))
+            "Página web" "Página personal"
+            (lambda (&rest _) (browse-url "https://web.com")))
+           (,(when (display-graphic-p)
+               (all-the-icons-material "home" :height 1.35 :v-adjust -0.24))
+            "Localhost" "Abrir localhost"
+            (lambda (&rest _) (browse-url "http://localhost/")))
+           (,(when (display-graphic-p)
+               (all-the-icons-octicon "tools" :height 1.0 :v-adjust 0.0))
+            "Configuración" "Abrir configuración de emacs (.org)"
+            (lambda (&rest _) (find-file (expand-file-name "config.org" user-emacs-directory))))
+           )))
+
+  :hook
+  (after-init . dashboard-setup-startup-hook))
+
+   #+END_SRC
+** Tabs
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package centaur-tabs
+  :demand
+  :config
+  (centaur-tabs-mode t)
+  (setq centaur-tabs-set-icons t)
+  (setq centaur-tabs-style "bar")
+  (setq centaur-tabs-set-bar 'over)
+  (setq centaur-tabs-modified-marker "*")
+  :bind
+  ("C-<prior>" . centaur-tabs-backward)
+  ("C-<next>" . centaur-tabs-forward))
+   #+END_SRC
+** Linum
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package display-line-numbers
+  :ensure nil
+  :config
+  (set-face-attribute 'line-number-current-line nil
+                      :background "MediumPurple4")
+  (set-face-attribute 'line-number nil
+                      :background nil
+                      :foreground "plum4")
+  :hook
+  ((php-mode
+    js2-mode
+	css-mode
+	web-mode
+	html-mode
+    systemd-mode
+    emacs-lisp-mode
+    python-mode) . display-line-numbers-mode)
+  )
+
+   #+END_SRC
+** Model Line
+   #+BEGIN_SRC emacs-lisp :tangle yes
+
+(use-package doom-modeline
+  :hook (after-init . doom-modeline-mode)
+  :init
+  ;; prevent flash of unstyled modeline at startup
+  (unless after-init-time
+    (setq doom-modeline--old-format mode-line-format)
+    (setq-default mode-line-format nil))
+
+  (setq doom-modeline-bar-width 3
+        doom-modeline-github nil
+        doom-modeline-mu4e t
+        doom-modeline-persp-name nil
+        doom-modeline-major-mode-color-icon t
+        doom-modeline-minor-modes nil
+        doom-modeline-indent-info t
+        doom-modeline-buffer-file-name-style 'relative-from-project)
+  :bind (:map doom-modeline-mode-map
+         ("C-<f6>" . doom-modeline-hydra/body)))
+
+   #+END_SRC
+
+** Multi Cursor
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package multiple-cursors)
+
+(global-set-key (kbd "C-S-c C-S-c") 'mc/edit-lines)
+(global-set-key (kbd "C->") 'mc/mark-next-like-this)
+(global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
+(global-set-key (kbd "C-M->") 'mc/skip-to-next-like-this)
+(global-set-key (kbd "C-M-<") 'mc/skip-to-previous-like-this)
+(global-set-key (kbd "C-c C-<") 'mc/mark-all-like-this)
+(global-unset-key (kbd "M-<down-mouse-1>"))
+(global-set-key (kbd "M-<mouse-1>") 'mc/add-cursor-on-click)
+
+   #+END_SRC
+** Projectile
+   #+BEGIN_SRC emacs-lisp :tangle yes
+   (use-package projectile
+  :ensure t
+  :bind (:map projectile-mode-map
+              ("C-c p" . 'projectile-command-map))
+  :config
+  (projectile-mode +1))
+
+   #+END_SRC
+
+** Flycheck
+   #+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package flycheck
+    :defer 2
+    :delight
+    :init (global-flycheck-mode)
+    :custom
+    (flycheck-display-errors-delay .3)
+    (flycheck-pylintrc "~/.pylintrc")
+    (flycheck-python-pylint-executable "/usr/bin/pylint")
+    (flycheck-stylelintrc "~/.stylelintrc.json")
+    :config
+    (flycheck-add-mode 'javascript-eslint 'web-mode)
+    (flycheck-add-mode 'typescript-tslint 'web-mode))
+   #+END_SRC
+
+** Ivy
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(ivy-mode 1)
+(setq ivy-use-virtual-buffers t)
+(setq ivy-count-format "(%d/%d) ")
+
+(global-set-key (kbd "C-s") 'swiper)
+(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "C-x C-f") 'counsel-find-file)
+(global-set-key (kbd "<f1> f") 'counsel-describe-function)
+(global-set-key (kbd "<f1> v") 'counsel-describe-variable)
+(global-set-key (kbd "<f1> l") 'counsel-find-library)
+(global-set-key (kbd "<f2> i") 'counsel-info-lookup-symbol)
+(global-set-key (kbd "<f2> u") 'counsel-unicode-char)
+
+(global-set-key (kbd "C-c c") 'counsel-compile)
+(global-set-key (kbd "C-c g") 'counsel-git)
+(global-set-key (kbd "C-c j") 'counsel-git-grep)
+(global-set-key (kbd "C-c k") 'counsel-ag)
+(global-set-key (kbd "C-x l") 'counsel-locate)
+(global-set-key (kbd "C-S-o") 'counsel-rhythmbox)
+
+(global-set-key (kbd "C-c C-r") 'ivy-resume)
+
+(provide 'init-ivy)
+
+   #+END_SRC
+
+** Lsp mode
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package lsp-mode
+  :ensure t
+  :commands lsp
+  :custom
+  (lsp-auto-guess-root nil)
+  (lsp-prefer-flymake nil) ; Use flycheck instead of flymake
+  (lsp-enable-file-watchers nil)
+  :bind (:map lsp-mode-map ("C-c C-f" . lsp-format-buffer))
+  :hook ((python-mode c-mode c++-mode php-mode) . lsp))
+
+(use-package lsp-ui
+  :after lsp-mode
+  :diminish
+  :commands lsp-ui-mode
+  :custom-face
+  (lsp-ui-doc-background ((t (:background nil))))
+  (lsp-ui-doc-header ((t (:inherit (font-lock-string-face italic)))))
+  :bind (:map lsp-ui-mode-map
+              ([remap xref-find-definitions] . lsp-ui-peek-find-definitions)
+              ([remap xref-find-references] . lsp-ui-peek-find-references)
+              ("C-c u" . lsp-ui-imenu))
+  :custom
+  (lsp-ui-doc-enable t)
+  (lsp-ui-doc-header t)
+  (lsp-ui-doc-include-signature t)
+  (lsp-ui-doc-position 'top)
+  (lsp-ui-doc-border (face-foreground 'default))
+  (lsp-ui-sideline-enable nil)
+  (lsp-ui-sideline-ignore-duplicate t)
+  (lsp-ui-sideline-show-code-actions nil)
+  :config
+  ;; Use lsp-ui-doc-webkit only in GUI
+  (setq lsp-ui-doc-use-webkit t)
+  (defadvice lsp-ui-imenu (after hide-lsp-ui-imenu-mode-line activate)
+    (setq mode-line-format nil)))
+
+   #+END_SRC
+** Autocompletado
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package company
+  :diminish company-mode
+  :defines (company-dabbrev-ignore-case company-dabbrev-downcase)
+  :commands company-abort
+  :bind (("M-/" . company-complete)
+         ("<backtab>" . company-yasnippet)
+         :map company-active-map
+         ("C-p" . company-select-previous)
+         ("C-n" . company-select-next)
+         ("<tab>" . company-complete-common-or-cycle)
+         ("<backtab>" . my-company-yasnippet)
+         ;; ("C-c C-y" . my-company-yasnippet)
+         :map company-search-map
+         ("C-p" . company-select-previous)
+         ("C-n" . company-select-next))
+  :hook (after-init . global-company-mode)
+  :init
+  (defun my-company-yasnippet ()
+    "Hide the current completeions and show snippets."
+    (interactive)
+    (company-abort)
+    (call-interactively 'company-yasnippet))
+  :config
+  (setq company-tooltip-align-annotations t
+        company-tooltip-limit 50
+		company-tooltip-flip-when-above t
+		company-tooltip-maximum-width 20
+        company-idle-delay 0
+        company-echo-delay (if (display-graphic-p) nil 0)
+        company-minimum-prefix-length 2
+        company-require-match nil
+		company-selection-wrap-around t
+        company-dabbrev-ignore-case nil
+        company-dabbrev-downcase nil)
+
+  (use-package company-prescient
+    :init (company-prescient-mode 1))
+
+  (use-package company-box
+    :diminish
+    :hook (company-mode . company-box-mode)
+	:init (setq company-box-icons-alist
+				'company-box-icons-all-the-icons)
+    ;;:functions (my-company-box--make-line
+    ;;            my-company-box-icons--elisp)
+    :commands (company-box--get-color
+               company-box--resolve-colors
+               company-box--add-icon
+               company-box--apply-color
+               company-box--make-line
+               company-box-icons--elisp)
+	:config
+	(setq company-box-backends-colors nil
+                  company-box-show-single-candidate t
+                  company-box-max-candidates 50
+                  company-box-doc-delay 0.5)
+
+	(defun company-box-icons--elisp (candidate)
+      (when (derived-mode-p 'emacs-lisp-mode)
+        (let ((sym (intern candidate)))
+          (cond ((fboundp sym) 'Function)
+                ((featurep sym) 'Module)
+                ((facep sym) 'Color)
+                ((boundp sym) 'Variable)
+                ((symbolp sym) 'Text)
+                (t . nil)))))
+	(with-eval-after-load 'all-the-icons
+      (declare-function all-the-icons-faicon 'all-the-icons)
+      (declare-function all-the-icons-fileicon 'all-the-icons)
+      (declare-function all-the-icons-material 'all-the-icons)
+      (declare-function all-the-icons-octicon 'all-the-icons)
+      (setq company-box-icons-all-the-icons
+            `((Unknown . ,(all-the-icons-material "find_in_page" :height 0.7 :v-adjust -0.15))
+              (Text . ,(all-the-icons-faicon "book" :height 0.68 :v-adjust -0.15))
+              (Method . ,(all-the-icons-faicon "cube" :height 0.7 :v-adjust -0.05 :face 'font-lock-constant-face))
+              (Function . ,(all-the-icons-faicon "cube" :height 0.7 :v-adjust -0.05 :face 'font-lock-constant-face))
+              (Constructor . ,(all-the-icons-faicon "cube" :height 0.7 :v-adjust -0.05 :face 'font-lock-constant-face))
+              (Field . ,(all-the-icons-faicon "tags" :height 0.65 :v-adjust -0.15 :face 'font-lock-warning-face))
+              (Variable . ,(all-the-icons-faicon "tag" :height 0.7 :v-adjust -0.05 :face 'font-lock-warning-face))
+              (Class . ,(all-the-icons-faicon "clone" :height 0.65 :v-adjust 0.01 :face 'font-lock-constant-face))
+              (Interface . ,(all-the-icons-faicon "clone" :height 0.65 :v-adjust 0.01))
+              (Module . ,(all-the-icons-octicon "package" :height 0.7 :v-adjust -0.15))
+              (Property . ,(all-the-icons-octicon "package" :height 0.7 :v-adjust -0.05 :face 'font-lock-warning-face)) ;; Golang module
+              (Unit . ,(all-the-icons-material "settings_system_daydream" :height 0.7 :v-adjust -0.15))
+              (Value . ,(all-the-icons-material "format_align_right" :height 0.7 :v-adjust -0.15 :face 'font-lock-constant-face))
+              (Enum . ,(all-the-icons-material "storage" :height 0.7 :v-adjust -0.15 :face 'all-the-icons-orange))
+              (Keyword . ,(all-the-icons-material "filter_center_focus" :height 0.7 :v-adjust -0.15))
+              (Snippet . ,(all-the-icons-faicon "code" :height 0.7 :v-adjust 0.02 :face 'font-lock-variable-name-face))
+              (Color . ,(all-the-icons-material "palette" :height 0.7 :v-adjust -0.15))
+              (File . ,(all-the-icons-faicon "file-o" :height 0.7 :v-adjust -0.05))
+              (Reference . ,(all-the-icons-material "collections_bookmark" :height 0.7 :v-adjust -0.15))
+              (Folder . ,(all-the-icons-octicon "file-directory" :height 0.7 :v-adjust -0.05))
+              (EnumMember . ,(all-the-icons-material "format_align_right" :height 0.7 :v-adjust -0.15 :face 'all-the-icons-blueb))
+              (Constant . ,(all-the-icons-faicon "tag" :height 0.7 :v-adjust -0.05))
+              (Struct . ,(all-the-icons-faicon "clone" :height 0.65 :v-adjust 0.01 :face 'font-lock-constant-face))
+              (Event . ,(all-the-icons-faicon "bolt" :height 0.7 :v-adjust -0.05 :face 'all-the-icons-orange))
+              (Operator . ,(all-the-icons-fileicon "typedoc" :height 0.65 :v-adjust 0.05))
+              (TypeParameter . ,(all-the-icons-faicon "hashtag" :height 0.65 :v-adjust 0.07 :face 'font-lock-const-face))
+              (Template . ,(all-the-icons-faicon "code" :height 0.7 :v-adjust 0.02 :face 'font-lock-variable-name-face)))))
+	)
+
+  ;; Popup documentation for completion candidates
+  (use-package company-quickhelp
+    :defines company-quickhelp-delay
+    :bind (:map company-active-map
+				([remap company-show-doc-buffer] . company-quickhelp-manual-begin))
+    :hook (global-company-mode . company-quickhelp-mode)
+    :init (setq company-quickhelp-delay 0.5)))
+
+ (use-package company-lsp
+    :config
+    (push 'company-lsp company-backends))
+
+   #+END_SRC
+
+** Projectile
+
+   #+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package projectile
+    :defer 1
+    :custom
+    (projectile-cache-file (expand-file-name (format "%s/emacs/projectile.cache" xdg-cache)))
+    (projectile-completion-system 'ivy)
+    (projectile-enable-caching t)
+    (projectile-known-projects-file (expand-file-name (format "%s/emacs/projectile-bookmarks.eld" xdg-cache)))
+    (projectile-mode-line '(:eval (projectile-project-name)))
+    :config (projectile-global-mode))
+
+  (use-package counsel-projectile
+    :after (counsel projectile)
+    :config (counsel-projectile-mode 1))
+
+   #+END_SRC
+
+** Yasnippets
+   #+BEGIN_SRC emacs-lisp :tangle yes
+
+  (use-package yasnippet
+    :defer 1
+    :delight yas-minor-mode " υ"
+    :hook (yas-minor-mode . my/disable-yas-if-no-snippets)
+    :config (yas-global-mode)
+    :preface
+    (defun my/disable-yas-if-no-snippets ()
+      (when (and yas-minor-mode (null (yas--get-snippet-tables)))
+        (yas-minor-mode -1))))
+
+  (use-package yasnippet-snippets
+    :after yasnippet
+    :config (yasnippet-snippets-initialize))
+
+  (use-package ivy-yasnippet :after yasnippet)
+  (use-package react-snippets :after yasnippet)
+   #+END_SRC
+** Parentesis
+
+    #+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package rainbow-delimiters
+    :defer 1
+    :hook (prog-mode . rainbow-delimiters-mode))
+    #+END_SRC
+
+    #+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package smartparens
+    :defer 1
+    :delight
+    :custom (sp-escape-quotes-after-insert nil)
+    :config (smartparens-global-mode 1))
+    #+END_SRC
+
+** Treemacs
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package treemacs
+  :commands (treemacs-follow-mode
+             treemacs-filewatch-mode
+             treemacs-fringe-indicator-mode
+             treemacs-git-mode)
+  :bind (([f8]        . treemacs)
+         ("M-0"       . treemacs-select-window)
+         ("C-x 1"     . treemacs-delete-other-windows)
+         ("C-x t 1"   . treemacs-delete-other-windows)
+         ("C-x t t"   . treemacs)
+         ("C-x t b"   . treemacs-bookmark)
+         ("C-x t C-t" . treemacs-find-file)
+         ("C-x t M-t" . treemacs-find-tag)
+         :map treemacs-mode-map
+         ([mouse-1]   . treemacs-single-click-expand-action))
+  :config
+  (setq treemacs-collapse-dirs                 (if treemacs-python-executable 3 0)
+        treemacs-sorting                       'alphabetic-case-insensitive-desc
+        treemacs-follow-after-init             t
+        treemacs-is-never-other-window         t
+        treemacs-silent-filewatch              t
+        treemacs-silent-refresh                t
+        treemacs-width                         25)
+ (treemacs-follow-mode t)
+  (treemacs-filewatch-mode t)
+  (pcase (cons (not (null (executable-find "git")))
+               (not (null (executable-find "python3"))))
+    (`(t . t)
+     (treemacs-git-mode 'deferred))
+    (`(t . _)
+     (treemacs-git-mode 'simple)))
+ ;; Projectile integration
+  (use-package treemacs-projectile
+    :after projectile
+    :bind (([M-f8] . treemacs-projectile)
+           :map projectile-command-map
+           ("h" . treemacs-projectile)))
+ (use-package treemacs-magit
+    :after magit
+    :commands treemacs-magit--schedule-update
+    :hook ((magit-post-commit
+            git-commit-post-finish
+            magit-post-stage
+            magit-post-unstage)
+           . treemacs-magit--schedule-update)))
+
+   #+END_SRC
+
+** Dired-sidebar
+   Dired sider para administración de las las carpetas
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package dired-sidebar
+  :bind (("C-x C-n" . dired-sidebar-toggle-sidebar))
+  :ensure t
+  :commands (dired-sidebar-toggle-sidebar)
+  :init
+  (add-hook 'dired-sidebar-mode-hook
+            (lambda ()
+              (unless (file-remote-p default-directory)
+                (auto-revert-mode))))
+  :config
+  (push 'toggle-window-split dired-sidebar-toggle-hidden-commands)
+  (push 'rotate-windows dired-sidebar-toggle-hidden-commands)
+
+  (setq dired-sidebar-subtree-line-prefix "__")
+  (setq dired-sidebar-theme 'vscode)
+  (setq dired-sidebar-use-term-integration t)
+  (setq dired-sidebar-use-custom-font t))
+   #+END_SRC
+** Ledger
+   Finanzas con emacs
+   #+BEGIN_SRC emacs-lisp :tangle yes
+ (use-package ledger-mode
+    :mode ("\\.dat\\'"
+           "\\.ledger\\'")
+    :custom (ledger-clear-whole-transactions t))
+
+;; (use-package flycheck-ledger
+;;    :after ledger-mode)
+   #+END_SRC
+** SkewerMode
+   Un preview para el desarrollo de front end
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package skewer-mode
+  :config (skewer-setup))
+;;:hook
+;;(js2-mode . skewer-mode)
+;;(css-mode . skewer-css-mode)
+;;(html-mode . skewer-html-mode)
+;;)
+;;
+;;(add-hook 'js2-mode-hook 'skewer-mode)
+;;(add-hook 'css-mode-hook 'skewer-css-mode)
+;;(add-hook 'html-mode-hook 'skewer-html-mode)
+   #+END_SRC
+** Mode line format
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package smart-mode-line)
+   #+END_SRC
+
+* ORG-MODE
+** Agenda
+   #+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package org-agenda
+    :ensure nil
+    :after org
+    :bind ("C-c a" . org-agenda)
+    :custom
+	  (org-agenda-compact-blocks t ) ; Diseño compacto
+      (org-agenda-files '("~/Notas/")) ; Incluir archivos de este directorio
+      (org-agenda-show-log t) ; Muestra los logs de la agenda
+      (org-agenda-skip-deadline-if-done t) ; No incluir tareas hechas
+	  (org-agenda-skip-scheduled-if-done t) ; Lo mismo de arriba
+      (org-agenda-skip-deadline-prewarning-if-scheduled 'pre-scheduled)
+      (org-agenda-start-on-weekday 1) ; Inicia la agenda en la semana actual
+	  (org-agenda-span 5) ; Duración predeterminada
+	  (org-deadline-warning-days 10) ; Advertir sobre una fecha límite
+      (org-agenda-sticky nil)
+      (org-agenda-inhibit-startup t) ; Deshabilita los startup de los buffer nuevos
+      (org-habit-show-habits-only-for-today nil) ; Mustra los habitos registrados
+      (org-agenda-window-setup 'current-window) ; Sobrescribe la ventana actual con la agenda
+      (org-agenda-tags-column -100) ; Las columnas que se usaran para mostrar la agenda
+)
+
+   #+END_SRC
+** Bullets
+   Cambia el aspecto de los bullets
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package org-bullets
+  :hook (org-mode . org-bullets-mode))
+   #+END_SRC
+
+** Toc-org
+   Mantendrá una tabla de contenido en el primer encabezado que tiene una etiqueta :TOC:.
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package toc-org
+  :after org
+  :hook (org-mode . toc-org-enable))
+   #+END_SRC
+
+** ORG-indent
+   Aspecto mejorado al indentar
+   #+BEGIN_SRC emacs-lisp :tangle yes
+;;Modo mas limpio de org
+(use-package org-indent
+  :after org
+  :ensure nil
+  :delight)
+   #+END_SRC
+
+** ORG-Contacts
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(use-package org-contacts
+  :ensure nil
+  :after org
+  :custom
+  (org-contacts-files '("~/Notas/Agenda/Contactos.org")))
+
+   #+END_SRC
+
+** ORG-babel
+   Configuración de babel para distintos lenguajes
+
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((dot . t)
+   (emacs-lisp . t)
+   (shell . t)
+   (python . t)
+   (gnuplot . t)
+   (latex . t)
+   (ledger . t)
+   ;;(resclient . t)
+   (sqlite . t)))
+   #+END_SRC
+
+** Cifrado y descifrado
+   Configuración para cifrar algunas partes de archivos org
+
+   #+BEGIN_SRC emacs-lisp :tangle yes
+(require 'org-crypt)
+(org-crypt-use-before-save-magic)
+(setq org-tags-exclude-from-inheritance (quote ("crypt")))
+
+(setq org-crypt-key nil)
+
+;;(setq auto-save-default nil)
+   #+END_SRC
+
+** Org-Capture
+   Siempre es bueno tener una forma más sencilla de agregar notas y ubicarlas automáticamente al lugar que le corresponde
+   #+BEGIN_SRC emacs-lisp :tangle yes
+
+(use-package org-capture
+  :ensure nil
+  :after org
+  :bind ("C-c c" . org-capture)
+  :preface
+  (defvar my/personal-ledger-file "~/Notas/Personales/Finanzas.ledger")
+  (defvar my/personal-file "~/Notas/Personales/Personal.org")
+  (defun my/generate-openssl-password ()
+	(replace-regexp-in-string "\n\\'" ""
+                              (shell-command-to-string "openssl rand -base64 15")))
+  :custom
+  (org-capture-templates
+   '(
+	 ;; Plantilla para capturar páginas de interes
+	 ("l" "Link (l)" item (file+headline "~/Notas/Personales/Personal.org" "Links")
+	  "- [[%^{Dirección}][%^{Nombre}]] %^{Descripción}\n"
+	  :immediate-finish t)
+
+	 ("q" "Nota rápida" item
+      (file+headline "~/Notas/Notas.org" "Notas rápidas"))
+
+	 ;; Capturas personales
+	 ("p" "Personales")
+	 ;; Contactos
+	 ("pc" "Contacto (c)" entry (file+headline "~/Notas/Personales/Personal.org" "Contactos")
+	  "* %^{Nombre} %^{Apellido}%?
+      :PROPERTIES:
+      :Nombre:    %\\1
+      :Apellido:     %\\2
+      :Cumpleaños: %^{Fecha de Nacimiento}u
+      :Teléfono:    %^{Teléfono}
+      :Email:    %^{Email}
+      :Nota:
+      :END:" :empty-lines 1)
+
+	 ;; Gestor de contraseñas y cuentas (acounts)
+	 ("pa" "Cuentas (p)" entry (file+headline "~/Notas/Personales/Personal.org" "Cuentas")
+	  "* %^{Nombre de la cuenta}?
+     :PROPERTIES:
+     :Web: %^{Sitio web}
+     :Usuario: %^{Usuario}
+     :Email: %^{Email}
+     :Contraseña: %(my/generate-openssl-password)
+     :Pregunta: %^{Pregunta de seguridad}
+     :Nota:
+     :END:" :empty-lines 1)
+
+	 ;; Finanzas personales
+	 ("pf" "Finanzas (f)" file "~/Notas/Personales/Finanzas.ledger"
+	  "%(org-read-date) %^{Descripcion}
+      %^{CuentaDestino|Pasivo|Gastos}:%^{Accion|Comida|Transporte|Telefonía|Prestamo}  $%^{Monto}
+      %^{CuentaSaliente|Activo|Pasivo}:%^{Flujo|Banco|Efectio}  %^{Monto}")
+
+	 ;; Compras personales
+	 ("pb" "Comprar (b)")
+	 ("pbn" "Comprar ahora (n)" checkitem (file+olp "~/Notas/Personales/Personal.org" "Compras" "Brevedad")
+      "[ ] %^{Que comprar}\n"
+	  :immediate-finish t)
+
+	 ("pbs" "Comprar algun día (s)" checkitem (file+olp "~/Notas/Personales/Personal.org" "Compras" "Algún día")
+      "[ ] %^{Que comprar}\n"
+	  :immediate-finish t)
+
+     ;; Cosas que deseo
+     ("pw" "Deseos (w)")
+
+	 ("pwl" "Aprender (l)" checkitem (file+olp "~/Notas/Personales/Personal.org" "Deseos" "Aprender")
+      "[ ] %^{Qué deseo aprender}\n"
+	  :immediate-finish t)
+
+	 ("pwd" "Hacer (d)" checkitem (file+olp "~/Notas/Personales/Personal.org" "Deseos" "Hacer")
+      "[ ] %^{Qué deseo hacer}\n"
+	  :immediate-finish t)
+
+	 ("pwt" "Viajar (t)" checkitem (file+olp "~/Notas/Personales/Personal.org" "Deseos" "Viajar")
+      "[ ] %^{A dónde quiero viajar?}\n"
+	  :immediate-finish t)
+
+	 ("pwL" "Proyecto de vida (L)" checkitem (file+olp "~/Notas/Personales/Personal.org" "Deseos" "Proyecto de vida")
+      "[ ] %^{Cúal es mi proyecto de vida?}\n"
+	  :immediate-finish t)
+
+
+	 ("ps" "Agenda (s)")
+	 ("psc" "Llamar (c)" entry (file+headline "~/Notas/Personales/Agenda.org" "Llamar")
+      "** Llamar a %^{Quién?}
+       CLOSED: %U
+      :PROPERTIES:
+      :NOTA: %^{Nota o información adicional}
+      :END:
+	  %T\n")
+
+	 ("psm" "Reunión (m)" entry (file+headline "~/Notas/Personales/Agenda.org" "Reunión")
+      "** Reunión con %^{Quién?}
+      CLOSED: %U
+      :PROPERTIES:
+      :NOTA: %^{Nota o información adicional}
+      :Lugar: %^{Ludar de la reunion}
+      :END:
+	  %T\n")
+	 )
+   ))
+   #+END_SRC
